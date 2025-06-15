@@ -19,43 +19,31 @@ class Calculator:
         if not expression or expression.isspace():
             return None
         tokens = expression.strip().split()
-        return self._evaluate_infix(tokens)
+        postfix_tokens = self._infix_to_postfix(tokens)
+        return self._evaluate_postfix(postfix_tokens)
 
-    def _evaluate_infix(self, tokens):
-        values = []
+    def _infix_to_postfix(self, tokens):
+        output = []
         operators = []
-
         for token in tokens:
             if token in self.operators:
-                while (
-                    operators
-                    and operators[-1] in self.operators
-                    and self.precedence[operators[-1]] >= self.precedence[token]
-                ):
-                    self._apply_operator(operators, values)
+                while operators and self.precedence[token] <= self.precedence[operators[-1]]:
+                    output.append(operators.pop())
                 operators.append(token)
             else:
-                try:
-                    values.append(float(token))
-                except ValueError:
-                    raise ValueError(f"invalid token: {token}")
-
+                output.append(token)
         while operators:
-            self._apply_operator(operators, values)
+            output.append(operators.pop())
+        return output
 
-        if len(values) != 1:
-            raise ValueError("invalid expression")
-
-        return values[0]
-
-    def _apply_operator(self, operators, values):
-        if not operators:
-            return
-
-        operator = operators.pop()
-        if len(values) < 2:
-            raise ValueError(f"not enough operands for operator {operator}")
-
-        b = values.pop()
-        a = values.pop()
-        values.append(self.operators[operator](a, b))
+    def _evaluate_postfix(self, tokens):
+        stack = []
+        for token in tokens:
+            if token in self.operators:
+                operand2 = float(stack.pop())
+                operand1 = float(stack.pop())
+                result = self.operators[token](operand1, operand2)
+                stack.append(result)
+            else:
+                stack.append(token)
+        return float(stack[0])
